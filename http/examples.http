@@ -1,0 +1,175 @@
+@base = http://localhost:3000
+@token = replace_me
+@location_id = 1
+@seller_id = 1
+
+### Health
+GET {{base}}/health
+
+### Login
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "phone": "998901234567",
+  "password": "admin123"
+}
+
+### Me
+GET {{base}}/me
+Authorization: Bearer {{token}}
+
+### Create product
+POST {{base}}/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Briket 10kg",
+  "sku": "BRK-10",
+  "barcode": "478000000001",
+  "unit": "pcs",
+  "retail_price": 45000,
+  "store_min_qty": 5
+}
+
+### List products
+GET {{base}}/products?q=briket
+Authorization: Bearer {{token}}
+
+### Inventory in
+POST {{base}}/inventory/in
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "location_id": {{location_id}},
+  "product_id": 1,
+  "qty": 100,
+  "unit_cost": 28000,
+  "note": "boshlang'ich kirim"
+}
+
+### Inventory adjust
+POST {{base}}/inventory/adjust
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "location_id": {{location_id}},
+  "product_id": 1,
+  "qty": -2,
+  "note": "sinov / yo'qolish"
+}
+
+### Balance
+GET {{base}}/inventory/balance?location_id=1
+Authorization: Bearer {{token}}
+
+### Create customer
+POST {{base}}/customers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "full_name": "Ali Valiyev",
+  "phone": "998911112233",
+  "credit_limit": 2000000
+}
+
+### Sale: cash + credit
+POST {{base}}/sales
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "location_id": 1,
+  "source_location_id": 2,
+  "seller_id": 1,
+  "customer_id": 1,
+  "items": [
+    { "product_id": 1, "qty": 2, "unit_price": 45000 }
+  ],
+  "payments": { "cash": 20000, "card": 0 },
+  "discount": 0,
+  "has_delivery": true,
+  "delivery": {
+    "address": "Toshkent, Yunusobod",
+    "recipient_name": "Ali Valiyev",
+    "recipient_phone": "998911112233",
+    "note": "Kechki payt"
+  },
+  "allow_negative_stock": false
+}
+
+### Add installment schedule
+POST {{base}}/sales/1/installments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "installments": [
+    { "due_date": "2026-09-20", "amount_due": 35000 },
+    { "due_date": "2026-10-05", "amount_due": 35000 }
+  ]
+}
+
+### Credit payment (FIFO)
+POST {{base}}/credit/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "customer_id": 1,
+  "amount": 35000,
+  "method": "cash"
+}
+
+### Customer ledger
+GET {{base}}/customers/1/ledger
+Authorization: Bearer {{token}}
+
+### Schedule pending (owner)
+GET {{base}}/credit/schedule-pending
+Authorization: Bearer {{token}}
+
+### Overdue (owner)
+GET {{base}}/credit/overdue
+Authorization: Bearer {{token}}
+
+### Daily report
+GET {{base}}/reports/daily?date=2026-09-07
+Authorization: Bearer {{token}}
+
+### Sales list filter
+GET {{base}}/sales?credit_status=schedule_pending
+Authorization: Bearer {{token}}
+
+### Restock alerts (dokonda kam, omborda bor)
+GET {{base}}/alerts/restock?store_location_id=1&warehouse_location_id=2
+Authorization: Bearer {{token}}
+
+### Transfer warehouse -> store
+POST {{base}}/inventory/transfer
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "from_location_id": 2,
+  "to_location_id": 1,
+  "items": [{ "product_id": 1, "qty": 3 }],
+  "note": "Restock"
+}
+
+### Deliveries
+GET {{base}}/deliveries?status=new
+Authorization: Bearer {{token}}
+
+### Delivery status
+PATCH {{base}}/deliveries/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "out_for_delivery"
+}
