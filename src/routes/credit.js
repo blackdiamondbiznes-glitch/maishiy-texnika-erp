@@ -63,6 +63,16 @@ router.post('/payments', requireRole('owner', 'seller'), async (req, res, next) 
     if (!['cash', 'card'].includes(method)) throw badRequest('invalid_method');
 
     const result = await withTx(async (tx) => {
+      // Sale first, then customer — same lock order as cancelSale
+      if (saleId) {
+        const s = await tx.query(
+          `SELECT id, status FROM sales WHERE id = $1 AND customer_id = $2 FOR UPDATE`,
+          [saleId, customerId]
+        );
+        if (!s.rows[0]) throw badRequest('sale_not_found_for_customer');
+        if (s.rows[0].status !== 'completed') throw badRequest('sale_not_completed');
+      }
+
       const custRes = await tx.query(
         `SELECT id, credit_balance FROM customers WHERE id = $1 FOR UPDATE`,
         [customerId]
@@ -73,14 +83,6 @@ router.post('/payments', requireRole('owner', 'seller'), async (req, res, next) 
       // MVP: overpay blok
       if (amount > toNum(customer.credit_balance)) {
         throw badRequest('amount_exceeds_balance', `balance=${customer.credit_balance}`);
-      }
-
-      if (saleId) {
-        const s = await tx.query(
-          `SELECT id FROM sales WHERE id = $1 AND customer_id = $2`,
-          [saleId, customerId]
-        );
-        if (!s.rows[0]) throw badRequest('sale_not_found_for_customer');
       }
 
       const payRes = await tx.query(

@@ -79,6 +79,7 @@ Seed:
 | POST/GET | `/sales` | POST owner/seller |
 | GET | `/sales/:id` | any |
 | POST | `/sales/:id/installments` | owner/seller |
+| POST | `/sales/:id/cancel` | owner/seller |
 | POST | `/credit/payments` | owner/seller |
 | GET | `/credit/schedule-pending` | owner |
 | GET | `/credit/overdue` | owner/seller |
@@ -98,6 +99,8 @@ HTTP misollar: `http/examples.http`.
 7. Stock `source_location_id` dan kamayadi (1.A, rezerv yo‘q).
 8. `has_delivery` stockdan mustaqil: do‘kondan ham, ombordan ham delivery bo‘lishi mumkin.
 9. Qoldiq `inventory_balance` cache. Har movement transactionda yangilanadi. Audit uchun `inventory_movements` source of truth.
+10. To‘liq cancel: `POST /sales/:id/cancel`. Stock `source_location_id` ga `return_in`. Sotuv `status=canceled`, `credit_status=none`. Nasiyadan to‘lov yig‘ilgan bo‘lsa blok (`credit_already_collected`). `credit_balance` dan `credit_total` yechiladi; balans yetmasa `cannot_reverse_credit`. Naqd/karta qaytarish faqat javobda (`refund_cash` / `refund_card`) — kassa smenasi yo‘q. Qayta cancel: `sale_already_canceled`. Qisman return yo‘q.
+11. Delivery `delivered` cancelni **bloklamaydi**. `new` / `out_for_delivery` / `delivered` ham `return_in` + delivery `canceled`. Sabab: stock sale paytida `sale_out`; bu endpoint to‘liq qaytarish. Delivery yo‘q bo‘lsa faqat sale cancel + `return_in`.
 
 ## Mix sale modellari
 
@@ -115,7 +118,8 @@ Seed 2 location yaratadi: do‘kon + ombor. Yangi filial = yangi `locations` row
 ## Keyingi bosqich TODO
 
 - [ ] Chek / PDF print
-- [ ] Returns (`return_in` + sale cancel qoidalari)
+- [x] Sale cancel (`POST /sales/:id/cancel` — `return_in` + credit reverse)
+- [ ] Partial returns
 - [ ] Expenses
 - [ ] Shift / kassa ochish-yopish
 - [ ] User CRUD + location assignment

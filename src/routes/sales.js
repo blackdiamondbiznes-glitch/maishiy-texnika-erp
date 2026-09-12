@@ -4,6 +4,7 @@ const { requireRole } = require('../middleware/auth');
 const { badRequest, notFound } = require('../lib/errors');
 const { round2, toNum, eq2 } = require('../lib/money');
 const { applyMovement, getQtyOnHand } = require('../lib/inventory');
+const { cancelSale } = require('../lib/sales');
 
 const router = express.Router();
 
@@ -287,7 +288,7 @@ router.post('/:id/installments', requireRole('owner', 'seller'), async (req, res
 
     const result = await withTx(async (tx) => {
       const saleRes = await tx.query(
-        `SELECT id, customer_id, credit_total, credit_status
+        `SELECT id, customer_id, credit_total, credit_status, status
          FROM sales
          WHERE id = $1
          FOR UPDATE`,
@@ -295,6 +296,7 @@ router.post('/:id/installments', requireRole('owner', 'seller'), async (req, res
       );
       const sale = saleRes.rows[0];
       if (!sale) throw notFound('sale_not_found');
+      if (sale.status !== 'completed') throw badRequest('sale_not_completed');
       if (!sale.customer_id) throw badRequest('customer_required');
       if (toNum(sale.credit_total) <= 0) throw badRequest('sale_has_no_credit');
 
@@ -331,6 +333,22 @@ router.post('/:id/installments', requireRole('owner', 'seller'), async (req, res
     });
 
     res.status(201).json(result);
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post('/:id/cancel', requireRole('owner', 'seller'), async (req, res, next) => {
+  try {
+    const saleId = Number(req.params.id);
+    if (!saleId) throw badRequest('invalid_sale_id');
+    const note = req.body && req.body.note != null ? String(req.body.note).trim() : '';
+
+    const result = await withTx((tx) =>
+      cancelSale(tx, { saleId, userId: req.user.id, note })
+    );
+
+    res.json(result);
   } catch (e) {
     next(e);
   }

@@ -145,6 +145,15 @@ Authorization: Bearer {{token}}
 GET {{base}}/sales?credit_status=schedule_pending
 Authorization: Bearer {{token}}
 
+### Cancel sale (full return_in)
+POST {{base}}/sales/1/cancel
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "note": "mijoz qaytardi"
+}
+
 ### Restock alerts (dokonda kam, omborda bor)
 GET {{base}}/alerts/restock?store_location_id=1&warehouse_location_id=2
 Authorization: Bearer {{token}}
